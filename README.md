@@ -2,7 +2,7 @@
 
 A web-based game inspired by the Netflix show *Bullsh*t!*. Players answer trivia questions — truthfully or with a confident bluff — and an AI detector decides if they're full of it.
 
-**Live URL:** _(add after Vercel deploy)_
+**Live URL:** https://bs-gameshow.vercel.app
 
 ---
 
