@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import type { PlayerReasoning } from "./api/challenge/route";
+
+// GA4 custom event helper
+function trackEvent(eventName: string, params?: Record<string, string | number | boolean>) {
+  if (typeof window !== "undefined" && (window as unknown as Record<string, unknown>).gtag) {
+    (window as unknown as Record<string, (...args: unknown[]) => void>).gtag("event", eventName, params);
+  }
+}
 
 interface Question {
   question: string;
@@ -111,6 +119,7 @@ export default function Home() {
       const res = await fetch(`/api/questions?categories=${categoryIds.join(",")}`);
       const data = await res.json();
       setQuestions(data.questions);
+      trackEvent("game_started", { categories: categoryIds.join(","), category_count: categoryIds.length });
       setGameState("idle");
     } catch {
       setGameState("error");
@@ -207,6 +216,18 @@ export default function Home() {
       setLieRate(newRate);
     }
 
+    // Fire custom GA4 event
+    trackEvent("bs_verdict_submitted", {
+      category: currentQuestion.category,
+      difficulty: currentQuestion.difficulty,
+      player_called_bs: playerCalledBS,
+      claude_was_lying: claudeWasLying,
+      correct,
+      points_earned: pts,
+      lie_rate: Math.round(lieRate * 100),
+      round_number: newResults.length,
+    });
+
     setScore((s) => s + pts);
     setLives(newLives);
     setRoundResults(newResults);
@@ -233,6 +254,7 @@ export default function Home() {
     }
 
     if (newLives <= 0) {
+      trackEvent("game_over", { final_score: score + pts, rounds_played: newResults.length, adaptation_events: adaptationLog.length });
       setTimeout(() => setGameState("game_over"), 1800);
     }
   };
@@ -300,7 +322,10 @@ export default function Home() {
         {/* Category picker */}
         {gameState === "category_pick" && (
           <div className="bg-gray-800 rounded-2xl p-8">
-            <h2 className="text-2xl font-black mb-1">Pick your categories</h2>
+            <div className="flex justify-between items-start mb-1">
+              <h2 className="text-2xl font-black">Pick your categories</h2>
+              <Link href="/how-to-play" className="text-yellow-400 text-sm font-semibold hover:underline">How to play →</Link>
+            </div>
             <p className="text-gray-400 text-sm mb-6">Choose up to 3. Claude will be quizzed on these topics.</p>
             <div className="grid grid-cols-2 gap-3 mb-8">
               {CATEGORIES.map((cat) => {
